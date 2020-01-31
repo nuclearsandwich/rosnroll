@@ -4,6 +4,7 @@
 echo "Resetting rosdistro repository."
 cd rosdistro
 git fetch origin
+git checkout -t origin/demos/update-platform || git checkout demos/update-platform
 git reset --hard origin/demos/update-platform
 
 echo "Running clone-rosdistro.py command from rosdistro directory."
