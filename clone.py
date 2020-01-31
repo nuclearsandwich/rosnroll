@@ -134,5 +134,4 @@ for dest_repo in sorted(new_repositories + repositories_to_retry):
 with open(destpath, 'w') as f:
     f.write(yaml_from_distribution_file(dest_distribution))
 
-print('done')
 print('Had {} repositories with errors:'.format(len(repositories_with_errors)), repositories_with_errors)
