@@ -89,24 +89,28 @@ for repo_name in sorted(new_repositories + repositories_to_retry):
         if release_repo not in org_release_repos:
             release_org.create_repo(release_repo)
         new_release_repo_url = 'https://github.com/{}/{}.git'.format(args.release_org, release_repo)
-        dest_track = copy.deepcopy(tracks['tracks'][args.source])
-        dest_track['ros_distro'] = args.dest
-        tracks['tracks'][args.dest] = dest_track
-        with open('tracks.yaml', 'w') as f:
-            yaml.safe_dump(tracks, f, default_flow_style=False)
         subprocess.check_call(['git', 'remote', 'rename', 'origin', 'oldorigin'])
         subprocess.check_call(['git', 'remote', 'set-url', '--push', 'oldorigin', 'no_push'])
         subprocess.check_call(['git', 'remote', 'add', 'origin', new_release_repo_url])
-        subprocess.check_call(['git', 'add', 'tracks.yaml'])
-        subprocess.check_call(['git', 'commit', '-m', 'Copy {} track to {} with clone.py.'.format(args.source, args.dest)])
-        ls_remote = subprocess.check_output(['git', 'ls-remote', '--heads', 'oldorigin', '*{}*'.format(args.source)], universal_newlines=True)
-        for line in ls_remote.split('\n'):
-            if line == '':
-                continue
-            obj, ref = line.split('\t')
-            ref = ref[11:] # strip 'refs/heads/'
-            newref = ref.replace(args.source, args.dest)
-            subprocess.check_call(['git', 'branch', newref, obj])
+
+        if args.source != args.dest:
+            # Copy the source track to the new destination.
+            dest_track = copy.deepcopy(tracks['tracks'][args.source])
+            dest_track['ros_distro'] = args.dest
+            tracks['tracks'][args.dest] = dest_track
+            with open('tracks.yaml', 'w') as f:
+                yaml.safe_dump(tracks, f, default_flow_style=False)
+            subprocess.check_call(['git', 'add', 'tracks.yaml'])
+            subprocess.check_call(['git', 'commit', '-m', 'Copy {} track to {} with clone.py.'.format(args.source, args.dest)])
+            ls_remote = subprocess.check_output(['git', 'ls-remote', '--heads', 'oldorigin', '*{}*'.format(args.source)], universal_newlines=True)
+            for line in ls_remote.split('\n'):
+                if line == '':
+                    continue
+                obj, ref = line.split('\t')
+                ref = ref[11:] # strip 'refs/heads/'
+                newref = ref.replace(args.source, args.dest)
+                subprocess.check_call(['git', 'branch', newref, obj])
+
         # Bloom will not run with multiple remotes.
         subprocess.check_call(['git', 'remote', 'remove', 'oldorigin'])
         subprocess.check_call(['git', 'bloom-release', '--unsafe', args.dest], env=os.environ)
