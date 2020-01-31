@@ -21,6 +21,10 @@ parser.add_argument('--release-org', required=True, help='The organization conta
 
 args = parser.parse_args()
 
+gclient = github.Github(os.environ['GITHUB_TOKEN'])
+release_org = gclient.get_organization(args.release_org)
+org_release_repos = [r.name for r in release_org.get_repos() if r.name]
+
 # TODO Remove and replace with standard get_index_url
 rosdistro_dir = os.path.abspath(os.getcwd())
 rosdistro_index_url = 'file://{}/index-v4.yaml'.format(rosdistro_dir)
@@ -83,14 +87,15 @@ for repo_name in sorted(new_repositories + repositories_to_retry):
         release_repo = remote_url.split('/')[-1][:-4]
         subprocess.call(['git', 'clone', remote_url])
         os.chdir(release_repo)
-        tracks = yaml.load(open('tracks.yaml', 'r'))
-        new_release_repo_url = 'git@github.com:nuclearsandwich-ros/{}.git'.format(release_repo)
+        tracks = yaml.safe_load(open('tracks.yaml', 'r'))
+        if release_repo not in org_release_repos:
+            release_org.create_repo(release_repo)
+        new_release_repo_url = 'https://github.com/{}/{}.git'.format(args.release_org, release_repo)
         dest_track = copy.deepcopy(tracks['tracks'][args.source])
         dest_track['ros_distro'] = args.dest
         tracks['tracks'][args.dest] = dest_track
         with open('tracks.yaml', 'w') as f:
             yaml.safe_dump(tracks, f, default_flow_style=False)
-        subprocess.check_call(['hub', 'create', 'nuclearsandwich-ros/{}'.format(release_repo)])
         subprocess.check_call(['git', 'remote', 'rename', 'origin', 'oldorigin'])
         subprocess.check_call(['git', 'remote', 'set-url', '--push', 'oldorigin', 'no_push'])
         subprocess.check_call(['git', 'remote', 'add', 'origin', new_release_repo_url])
