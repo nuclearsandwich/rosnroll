@@ -50,8 +50,6 @@ dest_distribution = get_distribution_file(index, args.dest)
 new_repositories = []
 repositories_to_retry = []
 for repo_name, repo_data in sorted(source_distribution.repositories.items()):
-    if repo_name not in ['fmi_adapter_ros2']:
-        continue
     if repo_name not in dest_distribution.repositories:
         new_repositories.append(repo_name)
         dest_distribution.repositories[repo_name] = copy.deepcopy(repo_data)
