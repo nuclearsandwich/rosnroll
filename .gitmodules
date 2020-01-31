@@ -1,0 +1,6 @@
+[submodule "new-rosdistro/rosdistro"]
+	path = new-rosdistro/rosdistro
+	url = https://github.com/nuclearsandwich-ros/rosdistro
+[submodule "update-platform/rosdistro"]
+	path = update-platform/rosdistro
+	url = https://github.com/nuclearsandwich-ros/rosdistro
