@@ -23,9 +23,13 @@ Configure a GitHub access token and test organization.
 These are required for demos to create release repositories.
 The token only needs public repository access and to belong to a member of the target GitHub organization with repository creation permissions.
 
+
     GITHUB_TOKEN={token with public repository access}
     GITHUB_ORG={GitHub organization name. Example 'nuclearsandwich-ros'}
     export GITHUB_ORG GITHUB_TOKEN
+
+If you are not already using a credential helper for https git remotes you will need to set one up:
+https://git-scm.com/docs/gitcredentials
 
 The shell you've just configured may be used for the following demos:
 
@@ -50,12 +54,14 @@ To run the demo:
     cd update-platform
     sh run_demo.sh
 
+For a detailed description see update-platform/README.md
 
-### Updating a cloned rosdistro
+
+### Updating a cloned rosdistro (WIP)
 
 The first time a new stable rosdistro is created, not all repositories may bloom succesfully.
 This demo showcases re-running a clone to try failed repositories again.
-To run the demo:
+This demo isn't ready yet, mostly due to a need to create suitable demo data.
 
     cd update-rosdistro
     sh run_demo.sh
