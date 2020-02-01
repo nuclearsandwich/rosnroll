@@ -8,7 +8,6 @@ Prototype utilities and demo scripts for rolling rosdistro releases.
 Create a python3 virtualenv and source it.
 The scripts are tested on Python 3.5 but should work on Python 3.6 or 3.7.
 
-
 Clone this repository with its submodules in order to get the sample rosdistro repos.
 
     git clone --recurse-submodules https://github.com/nuclearsandwich/rosnroll
@@ -18,6 +17,10 @@ Install the script dependencies.
 
     cd rosnroll
     pip install -r requirements.txt
+
+Make sure rosdep is initialized if it isn't already.
+
+    sudo rosdep init
 
 Configure a GitHub access token and test organization.
 These are required for demos to create release repositories.
