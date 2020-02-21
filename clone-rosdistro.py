@@ -80,7 +80,7 @@ for repo_name in sorted(new_repositories + repositories_to_retry):
         if release_spec.type != 'git':
             raise ValueError("This script can only handle git repositories.")
         # HACK Skipping repos that require interactivity
-        if repo_name in ['fmi_adapter_ros2', 'behaviortree_cpp_v3', 'system_modes', 'urdfdom_headers']:
+        if repo_name in ['fastrtps', 'fmi_adapter_ros2', 'behaviortree_cpp_v3', 'system_modes', 'urdfdom_headers']:
             raise ValueError("Bloom interactivity required")
         # HACK Skipping repos that are missing deps in focal
         if repo_name in ['cartographer_ros', 'demos', 'gazebo_ros_pkgs', 'geographic_info', 'perception_pcl', 'rmw_connext', 'rmw_opensplice', 'rosidl_typesupport_connext', 'rosidl_typesupport_opensplice', 'teleop_tools', 'vision_opencv']:
