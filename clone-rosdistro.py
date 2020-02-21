@@ -54,6 +54,7 @@ for repo_name, repo_data in sorted(source_distribution.repositories.items()):
         new_repositories.append(repo_name)
         dest_distribution.repositories[repo_name] = copy.deepcopy(repo_data)
     elif dest_distribution.repositories[repo_name].release_repository.version is None:
+        dest_distribution.repositories[repo_name].release_repository.version = repo_data.release_repository.version
         repositories_to_retry.append(repo_name)
     else:
         # Nothing to do if the release is there.
