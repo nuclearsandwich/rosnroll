@@ -60,12 +60,14 @@ To run the demo:
 For a detailed description see update-platform/README.md
 
 
-### Updating a cloned rosdistro (WIP)
+### Updating a cloned rosdistro 
 
 The first time a new stable rosdistro is created, not all repositories may bloom succesfully.
 This demo showcases re-running a clone to try failed repositories again.
-This demo isn't ready yet, mostly due to a need to create suitable demo data.
 
+To run the demo:
     cd update-rosdistro
     sh run_demo.sh
+
+For a detailed description see update-platform/README.md
 

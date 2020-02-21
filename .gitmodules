@@ -4,3 +4,6 @@
 [submodule "update-platform/rosdistro"]
 	path = update-platform/rosdistro
 	url = https://github.com/nuclearsandwich-ros/rosdistro
+[submodule "update-rosdistro/rosdistro"]
+	path = update-rosdistro/rosdistro
+	url = https://github.com/nuclearsandwich-ros/rosdistro
