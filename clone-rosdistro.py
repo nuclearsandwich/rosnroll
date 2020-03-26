@@ -5,6 +5,7 @@ import os.path
 import subprocess
 import tempfile
 
+from bloom.commands.git.patch.common import get_patch_config, set_patch_config
 import github
 import yaml
 
@@ -115,6 +116,15 @@ for repo_name in sorted(new_repositories + repositories_to_retry):
                 ref = ref[11:] # strip 'refs/heads/'
                 newref = ref.replace(args.source, args.dest)
                 subprocess.check_call(['git', 'branch', newref, obj])
+                if newref.startswith('patches/'):
+                    # Update parent in patch configs. Without this update the
+                    # patches will be rebased out when git-bloom-release is
+                    # called because the configured parent won't match the
+                    # expected source branch.
+                    config = get_patch_config(newref)
+                    config['parent'] = config['parent'].replace(args.source, args.dest)
+                    set_patch_config(newref, config)
+
 
         # Bloom will not run with multiple remotes.
         subprocess.check_call(['git', 'remote', 'remove', 'oldorigin'])
