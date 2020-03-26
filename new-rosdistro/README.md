@@ -23,9 +23,5 @@ Including:
 * system_modes: Requests version interactively
 * urdfdom_headers: Requests version interactively
 
-Although an attempt is made to move bloom refs from the source release track to the destination, patches applied during bloom releases aren't being honored.
-The result is that bloom will succeed but the released package may ultimately fail to build or function incorrectly because of missing patches.
-There are a number of repostories this is known to affect include ament_cmake, ros_workspace, and rmw_implementation among others. 
-
 If a release has been tagged and is part of the devel branch for the source distribution but is not yet released in that distribution then this script will release that unreleased version rather than the currently released version.
 
