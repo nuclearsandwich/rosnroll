@@ -3,14 +3,32 @@ import copy
 import os
 import os.path
 import subprocess
+import sys
 import tempfile
 
 from bloom.commands.git.patch.common import get_patch_config, set_patch_config
+from bloom.git import inbranch, show
+
 import github
 import yaml
 
 from rosdistro import DistributionFile, get_distribution_cache, get_distribution_file, get_index
 from rosdistro.writer import yaml_from_distribution_file
+
+def read_tracks_file():
+    return yaml.safe_load(show('master', 'tracks.yaml'))
+
+@inbranch('master')
+def write_tracks_file(tracks, commit_msg=None):
+    if commit_msg is None:
+        commit_msg = 'Update tracks.yaml from {}.'.format(sys.argv[0])
+    with open('tracks.yaml', 'w') as f:
+        f.write(yaml.safe_dump(tracks, indent=2, default_flow_style=False))
+    with open('.git/rosdistroclonecommitmsg', 'w') as f:
+        f.write(commit_msg)
+    subprocess.check_call(['git', 'add', 'tracks.yaml'])
+    subprocess.check_call(['git', 'commit', '-F', '.git/rosdistroclonecommitmsg'])
+
 
 parser = argparse.ArgumentParser(
     description='Import packages from one rosdistro into another one.'
@@ -81,9 +99,6 @@ for repo_name in sorted(new_repositories + repositories_to_retry):
         print("Adding repo:", repo_name)
         if release_spec.type != 'git':
             raise ValueError("This script can only handle git repositories.")
-        # HACK Skipping repos that require interactivity
-        if repo_name in ['fastrtps', 'fmi_adapter_ros2', 'behaviortree_cpp_v3', 'system_modes', 'urdfdom_headers']:
-            raise ValueError("Bloom interactivity required")
         # HACK Skipping repos that are missing deps in focal
         if repo_name in ['cartographer_ros', 'demos', 'gazebo_ros_pkgs', 'geographic_info', 'perception_pcl', 'rmw_connext', 'rmw_opensplice', 'rosidl_typesupport_connext', 'rosidl_typesupport_opensplice', 'teleop_tools', 'vision_opencv']:
             raise ValueError("Dependencies missing for focal")
@@ -91,7 +106,8 @@ for repo_name in sorted(new_repositories + repositories_to_retry):
         release_repo = remote_url.split('/')[-1][:-4]
         subprocess.call(['git', 'clone', remote_url])
         os.chdir(release_repo)
-        tracks = yaml.safe_load(open('tracks.yaml', 'r'))
+        tracks = read_tracks_file()
+
         if release_repo not in org_release_repos:
             release_org.create_repo(release_repo)
         new_release_repo_url = 'https://github.com/{}/{}.git'.format(args.release_org, release_repo)
@@ -104,10 +120,6 @@ for repo_name in sorted(new_repositories + repositories_to_retry):
             dest_track = copy.deepcopy(tracks['tracks'][args.source])
             dest_track['ros_distro'] = args.dest
             tracks['tracks'][args.dest] = dest_track
-            with open('tracks.yaml', 'w') as f:
-                yaml.safe_dump(tracks, f, default_flow_style=False)
-            subprocess.check_call(['git', 'add', 'tracks.yaml'])
-            subprocess.check_call(['git', 'commit', '-m', 'Copy {} track to {} with clone.py.'.format(args.source, args.dest)])
             ls_remote = subprocess.check_output(['git', 'ls-remote', '--heads', 'oldorigin', '*{}*'.format(args.source)], universal_newlines=True)
             for line in ls_remote.split('\n'):
                 if line == '':
@@ -124,14 +136,45 @@ for repo_name in sorted(new_repositories + repositories_to_retry):
                     config = get_patch_config(newref)
                     config['parent'] = config['parent'].replace(args.source, args.dest)
                     set_patch_config(newref, config)
+            write_tracks_file(tracks, 'Copy {} track to {} with clone.py.'.format(args.source, args.dest))
+        else:
+            dest_track = tracks['tracks'][args.dest]
 
+        # Configure next release to re-release previous version into the
+        # destination.  A version value of :{ask} will fail due to
+        # interactivity and :{auto} may result in a previously unreleased tag
+        # on the development branch being released for the first time.
+        if dest_track['version'] in [':{ask}', ':{auto}']:
+            # Override the version for this release to guarantee the same version is released.
+            dest_track['version_saved'] = dest_track['version']
+            dest_track['version'] = dest_track['last_version']
+            write_tracks_file(tracks, "Update {} track to release exactly last-released version.".format(args.dest))
+
+        if dest_track['release_tag'] == ':{ask}' and 'last_release' in dest_track:
+            # Override the version for this release to guarantee the same version is released.
+            dest_track['release_tag_saved'] = dest_track['release_tag']
+            dest_track['release_tag'] = dest_track['last_release']
+            write_tracks_file(tracks, "Update {} track to release exactly last-released tag.".format(args.dest))
 
         # Bloom will not run with multiple remotes.
         subprocess.check_call(['git', 'remote', 'remove', 'oldorigin'])
-        subprocess.check_call(['git', 'bloom-release', '--unsafe', args.dest], env=os.environ)
+        subprocess.check_call(['git', 'bloom-release', '--non-interactive', '--unsafe', args.dest], env=os.environ)
         subprocess.check_call(['git', 'push', 'origin', '--all', '--force'])
         subprocess.check_call(['git', 'push', 'origin', '--tags', '--force'])
-        new_release_track_inc = str(int(tracks['tracks'][args.dest]['release_inc']) + 1)
+        subprocess.check_call(['git', 'checkout', 'master'])
+
+        # Re-read tracks.yaml after release.
+        tracks = read_tracks_file()
+        dest_track = tracks['tracks'][args.dest]
+        if 'version_saved' in dest_track:
+            dest_track['version'] = dest_track['version_saved']
+            del dest_track['version_saved']
+            write_tracks_file(tracks, "Restore saved version for {} track.".format(args.dest))
+        if 'release_tag_saved' in dest_track:
+            dest_track['release_tag'] = dest_track['release_tag_saved']
+            del dest_track['release_tag_saved']
+            write_tracks_file(tracks, "Restore saved version and tag for {} track.".format(args.dest))
+        new_release_track_inc = str(int(tracks['tracks'][args.dest]['release_inc']))
         release_spec.url = new_release_repo_url
 
         ver, _inc = release_spec.version.split('-')
